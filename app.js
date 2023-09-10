@@ -7,7 +7,6 @@ require('./config/config-passport')
 
 const contactsRouter = require('./routes/api/contacts')
 const usersRouter = require('./routes/api/users')
-// const req = require('express/lib/request')
 
 const app = express()
 

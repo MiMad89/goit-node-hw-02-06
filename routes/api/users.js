@@ -1,20 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
 const users = require("../../models/users");
-const passport = require("passport");
+const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
 const secret = process.env.SECRET;
-
-const auth = (req, res, next) => {
-  passport.authenticate("jwt", { session: false }, (error, user) => {
-    if (!user || error)
-      return res.status(401).json({ message: "Not authorized" });
-    req.user = user;
-    next();
-  })(req, res, next);
-};
 
 router.get("/", async (req, res, next) => {
   try {
@@ -94,7 +84,7 @@ router.post("/signup", async (req, res, next) => {
     }
   });
 
-  router.get("/current", auth, async (req, res, next) => {
+  router.get("/current", users.auth, async (req, res, next) => {
     try {
       const { id } = req.user;
       const user = await users.getUserById(id);
@@ -113,7 +103,7 @@ router.post("/signup", async (req, res, next) => {
     }
   });
 
-  router.get("/logout", auth, async (req, res, next) => {
+  router.get("/logout", users.auth, async (req, res, next) => {
     try {
       const { id } = req.user;
       const user = await users.getUserById(id);
@@ -125,6 +115,25 @@ router.post("/signup", async (req, res, next) => {
       res.status(204).send();
     } catch (error) {
       res.status(500).json(`An error occurred while logging out: ${error}`);
+    }
+  });
+
+  router.delete("/:userId", users.auth, async (req, res, next) => {
+    try {
+      const { userId } = req.params;
+
+      const user = await users.deleteUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Error! User not found!" });
+      }
+      return res.status(200).json({
+        status: "success",
+        code: 200,
+        message: "Contact deleted",
+        data: { user },
+      });
+    } catch (error) {
+      res.status(500).json(`An error occurred while deleting the contact: ${error}`);
     }
   });
 

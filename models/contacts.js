@@ -1,6 +1,5 @@
 const Contact = require("../service/schema/contact");
 
-
 const listContacts = async () => {
   try {
     return await Contact.find();

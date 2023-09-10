@@ -1,4 +1,15 @@
 const User = require("../service/schema/users");
+const jwt = require("jsonwebtoken");
+const passport = require("passport");
+
+const auth = (req, res, next) => {
+  passport.authenticate("jwt", { session: false }, (error, user) => {
+    if (!user || error)
+      return res.status(401).json({ message: "Not authorized" });
+    req.user = user;
+    next();
+  })(req, res, next);
+};
 
 const allUsers = async () => {
     try {
@@ -40,8 +51,19 @@ const allUsers = async () => {
     }
   };
 
+  const deleteUser = async (id) => {
+    try {
+      return await User.findByIdAndDelete(id);
+    } catch (error) {
+      console.log(`Error deleting User with id ${id}: `, error);
+      throw error;
+    }
+  };
+
   module.exports = {
+    auth,
     allUsers,
+    deleteUser,
     getUserById,
     signup,
     login,
