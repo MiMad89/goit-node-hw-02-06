@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
+const {auth} = require("../../models/users")
 
 const postContactSchema = Joi.object({
   name: Joi.string().required(),
@@ -22,7 +23,7 @@ const patchContactSchema = Joi.object({
 
 const contacts = require("../../models/contacts");
 
-router.get("/", async (req, res, next) => {
+router.get("/", auth, async (req, res, next) => {
   try {
     const contactsList = await contacts.listContacts();
     res.status(200).json({
@@ -34,7 +35,7 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:contactId", async (req, res, next) => {
+router.get("/:contactId", auth, async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const contact = await contacts.getContactById(contactId);
@@ -52,7 +53,7 @@ router.get("/:contactId", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", auth, async (req, res, next) => {
   try {
     const body = req.body;
     const { error } = postContactSchema.validate(body);
@@ -69,7 +70,7 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.delete("/:contactId", async (req, res, next) => {
+router.delete("/:contactId", auth, async (req, res, next) => {
   try {
     const { contactId } = req.params;
 
@@ -85,7 +86,7 @@ router.delete("/:contactId", async (req, res, next) => {
   }
 });
 
-router.put("/:contactId", async (req, res, next) => {
+router.put("/:contactId", auth, async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const body = req.body;
@@ -118,7 +119,7 @@ router.put("/:contactId", async (req, res, next) => {
   }
 });
 
-router.patch("/:contactId", async (req, res, next) => {
+router.patch("/:contactId", auth, async (req, res, next) => {
   try {
     const body = req.body;
     const { contactId } = req.params;
