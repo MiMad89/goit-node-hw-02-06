@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
-const {auth} = require("../../models/users")
+const { auth } = require("../../models/users");
 
 const postContactSchema = Joi.object({
   name: Joi.string().required(),
@@ -58,7 +58,8 @@ router.post("/", auth, async (req, res, next) => {
     const body = req.body;
     const { error } = postContactSchema.validate(body);
 
-    if (error) return res.status(400).json({ message: "missing required name field" });
+    if (error)
+      return res.status(400).json({ message: "missing required name field" });
 
     const newContactsList = await contacts.addContact(body);
     res.status(201).json({
@@ -129,7 +130,6 @@ router.patch("/:contactId", auth, async (req, res, next) => {
       return res
         .status(400)
         .json({ message: "Too much fields or missing field favorite" });
-
 
     const contactFavorite = await contacts.updateStatusContact(contactId, body);
 

@@ -70,11 +70,12 @@ router.post("/login", async (req, res, next) => {
         .status(400)
         .json({ message: "Error! Email or password is wrong!" });
     }
-    const { id, password, subscription } = user;
+    const { id, password, subscription, avatarURL } = user;
     const payload = {
       id,
       email,
       subscription,
+      avatarURL
     };
 
     const token = jwt.sign(payload, secret, { expiresIn: "1h" });
@@ -85,7 +86,7 @@ router.post("/login", async (req, res, next) => {
       status: "success",
       code: 200,
       token: token,
-      user: { email, password, subscription },
+      user: { email, subscription, avatarURL },
     });
   } catch (error) {
     res.status(500).json(`An error occurred while adding the user: ${error}`);
