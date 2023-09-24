@@ -102,7 +102,14 @@ router.post("/login", async (req, res, next) => {
         .status(400)
         .json({ message: "Error! Email or password is wrong!" });
     }
-    const { id, password, subscription, avatarURL, verify } = user;
+
+    if (!user.verify) {
+      return res
+        .status(400)
+        .json({ message: "Error! Email is not verified yet!" });
+    }
+
+    const { id, subscription, avatarURL, verify } = user;
     const payload = {
       id,
       email,
