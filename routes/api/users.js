@@ -4,9 +4,13 @@ const users = require("../../models/users");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
 const Jimp = require("jimp");
+const nodemailer = require("nodemailer");
+const { nanoid } = require("nanoid");
+const emailValidator = require("email-validator");
 
 require("dotenv").config();
 const secret = process.env.SECRET;
+const emailPassword = process.env.EMAIL_PASSWORD;
 
 router.get("/", async (req, res, next) => {
   try {
@@ -32,21 +36,49 @@ router.post("/signup", async (req, res, next) => {
       .status(400)
       .json({ message: "Error! Missing fields! Empty request is not allowed" });
   }
+
+  if (!emailValidator.validate(email)) {
+    return res.status(400).json({ message: "Invalid email format" });
+  }
+
   try {
-    const user = await users.signup(req.body);
-    if (user === 409) {
-      return res.status(409).json({ message: "Email in use" });
-    }
+    const verificationToken = nanoid(16);
+
+    const user = await users.signup({
+      email,
+      password,
+      subscription,
+      verificationToken,
+    });
 
     const avatarURL = gravatar.url(email, { s: "250", d: "identicon" });
 
     user.avatarURL = avatarURL;
     await user.save();
 
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "kowaltest89@gmail.com",
+        pass: emailPassword,
+      },
+    });
+
+    const verificationLink = `http://localhost:3000/api/users/verify/${verificationToken}`;
+
+    const mailOptions = {
+      from: "kowaltest89@gmail.com",
+      to: email,
+      subject: "Email Verification",
+      text: `Click the following link to verify your email: ${verificationLink}`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
     return res.status(201).json({
       status: "User added",
       code: 201,
-      user: { email, subscription },
+      message: "Verification email sent",
     });
   } catch (error) {
     res.status(500).json(`User could not be created: ${error}`);
@@ -70,12 +102,20 @@ router.post("/login", async (req, res, next) => {
         .status(400)
         .json({ message: "Error! Email or password is wrong!" });
     }
-    const { id, password, subscription, avatarURL } = user;
+
+    if (!user.verify) {
+      return res
+        .status(400)
+        .json({ message: "Error! Email is not verified yet!" });
+    }
+
+    const { id, subscription, avatarURL, verify } = user;
     const payload = {
       id,
       email,
       subscription,
-      avatarURL
+      avatarURL,
+      verify,
     };
 
     const token = jwt.sign(payload, secret, { expiresIn: "1h" });
@@ -86,7 +126,7 @@ router.post("/login", async (req, res, next) => {
       status: "success",
       code: 200,
       token: token,
-      user: { email, subscription, avatarURL },
+      user: { email, subscription, avatarURL, verify },
     });
   } catch (error) {
     res.status(500).json(`An error occurred while adding the user: ${error}`);
@@ -176,5 +216,44 @@ router.patch(
     }
   }
 );
+
+router.get("/verify/:verificationToken", async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const veryfiUser = await users.verificationEmail(verificationToken);
+    if (veryfiUser.message === "404") {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.status(200).json({ message: "Verification successful" });
+  } catch (error) {
+    res.status(500).json(`Error verifying email: ${error}`);
+  }
+});
+
+router.post("/verify", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Missing required field: email" });
+    }
+
+    const user = await users.sendVerificationemail(email);
+
+    if (user.message === "404") {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.message === "400") {
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+    }
+
+    return res.status(200).json({ message: "Verification email sent" });
+  } catch (error) {
+    res.status(500).json(`Error verifying email: ${error}`);
+  }
+});
 
 module.exports = router;
